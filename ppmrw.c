@@ -1,7 +1,8 @@
-// Owner: Charles Beck
+ // Owner: Charles Beck
 // Date: 9/7/16
 // Class: CS 430
-
+// ALLOCATE DATA FOR PIXEL STRUCTURE then just from the 
+// information stored in the pixel buffer return either ascii data or the binary represention.
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -10,113 +11,163 @@ typedef struct RGBPixel{										// Data structure for pixel data in image file
 	unsigned char r, g, b;										 
 }RGBPixel;
 
-typedef struct{													// Structure for image data.
+typedef struct Image {											// Structure for image data.
 	int x, y;
 	RGBPixel *data;
 } Image;
 
-char type[16]; 													// Allocate memory for responses.
+#define creator "CJB456"
+#define rgb_color 255
+
+int type; 														// Allocate memory for responses.
 int width;
-int height;
-double image_data[];											// Array for ascii data and binary data.
-char* fileName;													// File name value.
+int height;														// Array for ascii data and binary data.
+char* fileNameIn;	
+char* fileNameOut;				
+																// File name value.
+Image *img;
 
-void p3_to_p6(){
-	fprintf("p3 to p6 converter:\n");	
-	fprintf("Enter in the name of file with extention (input.ppm): ")	// Ask what file they want converted.
-	fscanf = ("%s", fileName);									// Scan in answer.
-	int i, j, count;
-	double buffer[16];
-	FILE* fh = fopen(fileName, "r");
-
-	if (!fh) {
-		fprintf(stderr, "File not able to open, may not exist.\n", fileName);
-		return(1);
-		}
-																// Image data.
-	if (!fgets(buff, sizeof(buff), fp)) {
-	  perror(fileName);
-	  exit(1);
-	}
-		
-	if (buffer[0] != 'P' || buffer[1] != '3') {					// Check if file is P3.
-		fprintf(stderr, "Error: Usage, P3 files only\n");
-		exit(1);
-	}
-																// Alloc memory form image.
-    img = (Image *)malloc(sizeof(Image));
-    if (!img) {
-         fprintf(stderr, "Unable to allocate memory\n");
+																			// void write_P6(char *fileName, Image *img)
+void write_P6(Image *img)
+{
+	width = img->y;
+	height = img->x;
+	int biit;
+    FILE *fh = fopen("output.ppm", "w");
+														//open file for outpu
+    if (!fh) {
+         printf("Unable to open file '%s'\n", fileNameOut);
          exit(1);
     }
-    while (fgetc(fp) != '\n') ;
-																// Memory allocation for pixel data.
-    img->data = (PPMPixel*)malloc(img->x * img->y * sizeof(PPMPixel));
-
-    if (!img) {													// See if image data exists.
-         fprintf(stderr, "Unable to allocate memory\n");
-         exit(1);
-    }
-
-}
-
-void p6_to_p3(){
-	fprintf("p6 to p3 converter:\n");	
-	fprintf("Enter in the name of file with extention (input.ppm): ")// Ask what file they want converted.
-	fscanf = ("%s", fileName);									// Scan in answer.
-	int i, j, count, rgb_color;
-	Image *img;
-	double buffer[16];											// Buffer for header information.
-	FILE* fh = fopen(fileName, "r");
-	if (!fh) {
-			fprintf(stderr, "File not able to open, may not exist.\n", fileName);
-			return(1);
-			}
-	// Image data
-	if (!fgets(buffer, sizeof(buffer), fp)) {
-	  perror(fileName);
-	  exit(1);
-	}
-	if (buffer[0] != 'P' || buffer[1] != '6') {					// Check to see is file is P6.
-		fprintf(stderr, "Error: Usage, P6 files only\n");
-		exit(1);
-		
-	}
-																// Alloc memory form image.
-    img = (Image *)malloc(sizeof(Image));
-    if (!img) {
-         fprintf(stderr, "Unable to allocate memory\n");
-         exit(1);
-    }
-																// Read image size information.
-    if (fscanf(fp, "%d %d", &img->x, &img->y) != 2) {
-         fprintf(stderr, "Error: Image size not valid)\n", fileName);
-         exit(1);
-    }
-																// Read image data.
-    if (fread(img->data, 3 * img->x, img->y, fh) != img->y) {
-         fprintf(stderr, "Error loading image '%s'\n", fileName);
-         exit(1);
-    }
-	else if(fread(img->data, 3 * img->x, img->y, fh) == img->y){
-		
-	}
-
+																			//write the header file
+																			//image format
+    fprintf(fh, "P3\n");
 	
+
+																			//comments
+    fprintf(fh, "# Created by %s\n",creator);
+	
+																			//image size
+    fprintf(fh, "%d %d\n",img->x,img->y);
+
+																			// rgb alpha
+    fprintf(fh, "%d\n",rgb_color);
+
+    // pixel data
+    fwrite(img->data, 3 * img->x, img->y, fh);
+	
+    fclose(fh);
 }
+
+void write_P3(Image *img)
+{
+	width = img->y;
+	height = img->x;
+
+    FILE *fh = fopen("output.ppm", "w");
+														//open file for output
+    if (!fh) {
+         printf("Unable to open file '%s'\n", fileNameOut);
+         exit(1);
+    }
+																			//write the header file
+																			//image format
+    fprintf(fh, "P6\n");
+																			// add comments and creator information
+    fprintf(fh, "# Created by %s\n",creator);
+	
+																			//image size
+    fprintf(fh, "%d %d\n",img->x,img->y);
+
+																			// rgb alpha
+    fprintf(fh, "%d\n",rgb_color);
+
+																			// write pixel data
+    fwrite(img->data, 3 * img->x, img->y, fh);
+	
+    fclose(fh);
+}
+
+void read_file(){	
+	printf("Enter in the name of file with extention you wish to store (#input.ppm): ");	// Ask what file they want converted.
+	scanf ("%s", fileNameIn);										// Scan in answer.
+	if(strstr(fileNameIn,  ".ppm" ) == NULL)
+			printf("Error: usage ppmrw.c #input.ppm output.ppm\n");
+	int i, j, count, comments, d ,endOfHead, headerLength;
+	
+	FILE* fh = fopen(fileNameIn, "r");
+	endOfHead = getc(fh);
+	
+    while (getc(fh) != '\n') {
+         endOfHead = getc(fh);
+		 count++;												
+		 if(getc(fh) == '\n'){
+																// Break loop if the header reaches a new line
+		 }														// PPM headers are formatted to have a new line at the end of the header
+    }
+	ungetc(endOfHead, fh);
+	
+	char fileHeader[count];
+	if (!fh) {													// Check if file exists
+		printf("File not able to open, may not exist.\n", fileNameIn);
+		exit(1);
+		}
+	for (i = 0; i < count; i++){									// File type p3 or p6
+		d = fgetc(fh);
+		fileHeader[i] = d;
+	}	
+	if (fileHeader[2] == 3){
+		write_P6(img);
+	}
+	if (fileHeader[2] == 6){
+		write_P3(img);
+	}
+
+																//check for comments
+     comments = getc(fh);
+    while (comments == '#') {
+    while (getc(fh) != '\n') ;
+         comments = getc(fh);
+    }
+																//check for comments
+     d = getc(fh);
+    while (d == ' ') {
+    while (getc(fh) != '\n') ;
+         d = getc(fh);
+    }
+	if (fileHeader[0] != 'P' || fileHeader[1] != '3' ||fileHeader[1] != '6'){				// Check if file is P3 or P6.
+		printf("Error: Usage, P3 and P6  files only\n");
+		exit(1);
+	}
+	
+	//read image size information
+    if (fscanf(fh, "%d %d", &img->x, &img->y) != 2) {
+        printf("Invalid image size (error loading '%s')\n", fileNameIn);
+         exit(1);
+    }
+	
+	while (fgetc(fh) != '\n') ;
+																			//memory allocation for pixel data
+    img->data = (RGBPixel*)malloc(img->x * img->y * sizeof(RGBPixel));
+	
+    if (!img) {
+         printf("Unable to allocate memory\n");
+         exit(1);
+    }
+
+																			//read pixel data from file
+    if (fread(img->data, 3 * img->x, img->y, fh) != img->y) {
+         printf("Error: Issue reading image '%s'\n", fileNameIn);
+         exit(1);
+	}
+	
+	fclose(fh);
+}
+
+
+
 
 int main(int argc, char *argv[]){
-	fprintf("p3 and p6 converter:\n");	
-	fprintf("Enter in the type of File you need converted: ")	// Ask what file type they want converted.
-	fscanf = ("%s", type);										// Scan in answer.
-	if (type == "p3"){											// If selection is p3 then go to p3_to_p6 converter method.
-		p3_to_p6();
-		}
-	if (type == "p6"){											// If selection is p6 then go to p6_to_p3 converter method.
-		p6_to_p3();
-		}
-	if(type != "p3" || type != "p6"){							// If selection is neither then send error and description.
-		printf("Error: Usage, only P3 or P6 file conversion.");
-		return(1);
-		}
-}
+	printf("p3 and p6 converter:\n");	
+	read_file();
+	}

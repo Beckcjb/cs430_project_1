@@ -53,6 +53,7 @@ FILE* fo;										// File name value.
 												// void write_P6(char *fileName, Image *img)
 void write_P6(char* fileNameOut, Image* imaged)
 {
+	printf("Stored Data, Now writing\n");
 	width = imaged->w;
 	height = imaged->h;
     FILE *fo = fopen(fileNameOut, "wb");
@@ -74,18 +75,19 @@ void write_P6(char* fileNameOut, Image* imaged)
 	printf("%d....\n",rgb_color);
 
     // pixel data
+	int i, j;
 	  for (i = 0; i < imaged->h; ++i){
 		for (j = 0; j < imaged->w; ++j){
 				fwrite(imaged->data, 1, 3, fo);
 	  }
 	  }
     fclose(fo);
-	printf("File store complete");
+	printf("File write complete...");
 }
 //============= WRITE METHODS: P3 ========================================================================
 void write_P3(char* fileNameOut, Image* imaged)
 {
-	printf("Got to writing!\n");
+	printf("Stored Data, Now writing\n");
 	width = imaged->w;
 	height = imaged->h;
 
@@ -113,11 +115,11 @@ void write_P3(char* fileNameOut, Image* imaged)
 
 
     
-	printf("File store complete");
+	printf("File write complete...");
 }
 // ========== READ METHODS: ASCII ==================================================
 void readStoreASCII(char* fileNameIn, char* fileNameOut, char* type){	
-		
+		printf("Storing Data.\n");
 	int i, j, count, comments, d ,endOfHead, headerLength ;
 	Image *imaged;
 	width = imaged->w;
@@ -207,6 +209,7 @@ void readStoreASCII(char* fileNameIn, char* fileNameOut, char* type){
 }
 // ================ READ METHODS: RAW =============================================================
 void readStoreRAW(char* fileNameIn, char* fileNameOut, char* type){	
+	printf("Storing Data.\n");
 	int i, j, count, comments, d ,endOfHead, headerLength, n;
 	
 	Image *imaged;
@@ -215,7 +218,12 @@ void readStoreRAW(char* fileNameIn, char* fileNameOut, char* type){
 	height = imaged->h;
 	
 	FILE* fi = fopen(fileNameIn, "rb");
-
+	printf("opened file\n");
+	if (fi == NULL) {								// if file does not exist send error
+		printf("Error: Could not open file\n");
+		exit(1);
+	}
+	
 	for (i = 0; i < 2; i++){									// File type p3 or p6
 		d = fgetc(fi);
 		fileHeader[i] = d;
@@ -251,12 +259,12 @@ void readStoreRAW(char* fileNameIn, char* fileNameOut, char* type){
     }
 
 																			//read pixel data from file
-  	int temp,red, greem , blue;													// Read file data
+  	int temp,red, green , blue;													// Read file data
 	for(i = 0 ; i < height; i++ ){
 		for(j = 0; j < width; j ++){
 			printf("Reading File, placing pixels\n");
 			
-			red = imaged->data[i*width*3+3*j].r =;
+			red = imaged->data[i*width*3+3*j].r;
 			fread(&red, 1, 1, fi);
 			
 			green = imaged->data[i*width*3+3*j+1].g;
@@ -329,7 +337,6 @@ int main(int argc, char *argv[]){
 	if (fileHeader[1] == '3'){		
 																// If input file is p3 go to store data in ascii
 		readStoreASCII(fileNameIn, fileNameOut, type);
-
 		}
 	else if (fileHeader[1] == '6'){								// If input file is p6 go to store data in RAW
 		readStoreRAW(fileNameIn, fileNameOut, type);

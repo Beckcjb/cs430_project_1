@@ -1,13 +1,31 @@
 // Owner: Charles Beck
-// Date: 9/7/16
+// Date: 9/16/16
 // Class: CS 430
-// ALLOCATE DATA FOR PIXEL STRUCTURE then just from the 
-// information stored in the pixel buffer return either ascii data or the binary represention.
+// 
+// Project 1: PPM File Read Write
+//
+// ==============================================================================================
+// This program reads in four string arguments from the command line and
+// and reads ppm file data and out puts a specified ppm file type by the user.
+ 
+// Usage in the command line:
+//  ppmrw 3/6(intended output type) input.ppm output.ppm
+//		
+//		Before the string arguments are stored the program will error check to see if
+// the input and output files are the correct type and the desired file type is correct as well.
+// After the tests, main will read the header of the file and get the type then it will pass on
+// the file name and output file type to the correct store method be it ascii or raw data.
+// The store methods will error check to see if the file exists or hs any data at all. Next 
+// based off of the output type argument entered by the user the program will send off the sorted 
+// image data and file output name to the write method specified. Then the program will either 
+// write a P3 file or a P6 based off of the users requests. Error checking is used through out to 
+// ensure the correct proccesses occur.  
+// ===============================================================================================
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
-
+// ============= DATA STRUCTRES =====================================================================
 typedef struct RGBPixel{						// Data structure for pixel data in image file.
 	unsigned char r, g, b;										 
 }RGBPixel;
@@ -19,7 +37,8 @@ typedef struct Image {							// Structure for image data.
 
 #define rgb_color 255							// We are not using ppm files that obtain an alpha channel 
 												// 		so we can define rgb color depth as 255
-
+												
+//============== GLOBAL VARIABLES ===================================================================
 char* type; 									// Allocate memory for responses.
 int width;
 int height;										
@@ -29,10 +48,10 @@ char* buffer[24];
 int fileHeader[2];			
 FILE* fi;
 FILE* fo;										// File name value.
-Image *imaged;									// pointer to Image data
-
+						// pointer to Image data
+//============= WRITE METHODS: P6 ========================================================================
 												// void write_P6(char *fileName, Image *img)
-void write_P6(char* fileNameOut, Image *imaged)
+void write_P6(char* fileNameOut, Image* imaged)
 {
 	width = imaged->w;
 	height = imaged->h;
@@ -55,14 +74,18 @@ void write_P6(char* fileNameOut, Image *imaged)
 	printf("%d....\n",rgb_color);
 
     // pixel data
-    fwrite(imaged->data, 3 * imaged->w, imaged->h, fo);
-	
+	  for (i = 0; i < imaged->h; ++i){
+		for (j = 0; j < imaged->w; ++j){
+				fwrite(imaged->data, 1, 3, fo);
+	  }
+	  }
     fclose(fo);
 	printf("File store complete");
 }
-
-void write_P3(char* fileNameOut, Image *imaged)
+//============= WRITE METHODS: P3 ========================================================================
+void write_P3(char* fileNameOut, Image* imaged)
 {
+	printf("Got to writing!\n");
 	width = imaged->w;
 	height = imaged->h;
 
@@ -71,48 +94,55 @@ void write_P3(char* fileNameOut, Image *imaged)
 													//write the header file
 													//image format
     fprintf(fo, "P3\n");
-	printf("P3");
+	printf("P3\n");
 													//image size
-    fprintf(fo, "%d %d\n",imaged->w,imaged->h);
-	printf("%d %d\n",imaged->w,imaged->h);
+    fprintf(fo, "%d     %d\n",imaged->w,imaged->h);
+	printf("%c %c\n",imaged->w,imaged->h);
 
-													// rgb alpha
-    fprintf(fo, "%d\n",rgb_color);
-	printf("%d....\n",rgb_color);
 													// write pixel data
-    fwrite(imaged->data, 3 * imaged->w, imaged->h, fo);
-	
-    fclose(fo);
+   
+  int i, j;
+ 
+
+  for (i = 0; i < imaged->h; ++i){
+    for (j = 0; j < imaged->w; ++j){
+			fwrite(imaged->data, 1, 3, fo);
+	}
+  }
+	fclose(fo);
+
+
+    
 	printf("File store complete");
 }
-
+// ========== READ METHODS: ASCII ==================================================
 void readStoreASCII(char* fileNameIn, char* fileNameOut, char* type){	
-	printf("What happened here tooa?\n");
 		
 	int i, j, count, comments, d ,endOfHead, headerLength ;
-	char reader;
-	
-
+	Image *imaged;
 	width = imaged->w;
 	height = imaged->h;
 	
-	FILE* fi = fopen(fileNameIn, "r");
+	FILE* fi = fopen(fileNameIn, "r");				// open file for reading
+	printf("opened file\n");
+	if (fi == NULL) {								// if file does not exist send error
+		printf("Error: Could not open file\n");
+		exit(1);
+	}
 	
-	fread(imaged->data, width, height, fi);
-	int g = fgetc(fi);
+	
+	int g = fgetc(fi);								// get header file type information
 	for(i = 0 ; i<2; i++){
 		g = fgetc(fi);
 		fileHeader[i] = g;
 		printf("%c\n", g);
 		
 	}
-	if (fileHeader[0] != 'P' || fileHeader[1] != '3'){			// Check if file is P3 or P6.
+	if (fileHeader[0] != '3'){			// Check if file is P3 or P6.
 		fprintf(stderr, " ascii: Error: Usage, P3 and P6  files only\n");
 		exit(1);
 	}
 	
-
-
 	
 	if (!fi) {													// Check if file existsn 
 		fprintf(stderr, "File not able to open, may not exist.\n", fileNameIn);
@@ -124,14 +154,7 @@ void readStoreASCII(char* fileNameIn, char* fileNameOut, char* type){
     while (getc(fi) != '\n') ;
          comments = getc(fi);
     }
-																//check for whitespaces
-     d = getc(fi);
-    while (d == ' ') {
-    while (getc(fi) != '\n') ;
-         d = getc(fi);
-    }
 
-	
 																//read image size information
     if (fscanf(fi, "%d %d", &width, &height) != 2) {
         fprintf(stderr, "Invalid image size (error loading '%s')\n", fileNameIn);
@@ -147,48 +170,58 @@ void readStoreASCII(char* fileNameIn, char* fileNameOut, char* type){
     }
 
 																//read pixel data from file
-	int pix;													// Read file data
+	int temp;													// Read file data
 	for(i = 0 ; i < height; i++ ){
 		for(j = 0; j < width; j ++){
-			fscanf(fi, "%d", &pix);
-			imaged->data[i*width*3+3*j] = pix;
+			printf("Reading File, placing pixels\n");
+			fscanf(fi, "%d", &temp);
+			imaged->data[i*width*3+3*j].r = temp;
 			
-			fscanf(fi, "%d", &pix);
-			imaged->data[i*width*3+3*j+1] = pix;
+			fscanf(fi, "%d", &temp);
+			imaged->data[i*width*3+3*j+1].g = temp;
 			
-			fscanf(fi, "%d", &pix);
-			imaged->data[i*width*3+3*j+2] = pix;
+			fscanf(fi, "%d", &temp);
+			imaged->data[i*width*3+3*j+2].b = temp;
 		}
 	}
 	
-	fclose(fi);	// Close file
-	printf("What happened here too?\n");
-	if (type == "3"){
-		write_P6(fileNameOut, imaged);   	// if the number selected as output is a 3 go to write P3
+	
+
+	int types = atoi(type);
+	int o = fgetc(fi);
+	while(getc(fi) != EOF){
+		o = fgetc(fi);
+		
+	if (types == 3){
+		printf(" here ");
+		fclose(fi);	// Close file
+		write_P3(fileNameOut, imaged);						// if the number selected as output is a 3 go to write P3
+		break; 
 	}
-	if (type == "6"){
-		write_P3(fileNameOut, imaged);		// if the number selected as output is a 6 go to write P6
-	}
+	if (types == 6){
+		fclose(fi);	// Close file
+		write_P6(fileNameOut, imaged);						// if the number selected as output is a 6 go to write P6
+		break; 
+	}}
 	
 }
-
+// ================ READ METHODS: RAW =============================================================
 void readStoreRAW(char* fileNameIn, char* fileNameOut, char* type){	
-	printf("What happened here too?\n");
 	int i, j, count, comments, d ,endOfHead, headerLength, n;
-	char reader;
+	
+	Image *imaged;
 	
 	width = imaged->w;
 	height = imaged->h;
 	
 	FILE* fi = fopen(fileNameIn, "rb");
-	
-	fread(imaged->data, width, height, fi);
+
 	for (i = 0; i < 2; i++){									// File type p3 or p6
 		d = fgetc(fi);
 		fileHeader[i] = d;
 		}	
 
-	if (fileHeader[1] != 6){
+	if (fileHeader[0] != 6){
 		fprintf(stderr, "Error: File must be P3 or P6\n");
 	exit(1);}
 	
@@ -201,20 +234,9 @@ void readStoreRAW(char* fileNameIn, char* fileNameOut, char* type){
     while (comments == '#') {
     while (getc(fi) != '\n'){
 		comments = getc(fi);}
-    }
-																//check for whitespaces
-     d = getc(fi);
-    while (d == ' ') {
-    while (getc(fi) != '\n'){
-		d = getc(fi);}
-    }
-	if (fileHeader[1] != '3' ||fileHeader[1] != '6'){						// Check if file is P3 or P6.
-		fprintf(stderr, "raw: Error: Usage, P3 and P6  files only\n");
-		exit(1);
 	}
-	
-																			//read image size information
-    if (fscanf(fi, "%d %d", &width, &height) != 2) {
+																				//read image size information
+    if (fscanf(fi,"%d %d", &width, &height) != 2) {
         fprintf(stderr, "raw: Invalid image size (error loading '%s')\n", fileNameIn);
          exit(1);
     }
@@ -229,25 +251,44 @@ void readStoreRAW(char* fileNameIn, char* fileNameOut, char* type){
     }
 
 																			//read pixel data from file
-    if (fread(imaged->data, 3 * imaged->w, imaged->h, fi) != imaged->h) {
-         fprintf(stderr, "raw: Error: Issue reading image '%s'\n", fileNameIn);
-         exit(1);
+  	int temp,red, greem , blue;													// Read file data
+	for(i = 0 ; i < height; i++ ){
+		for(j = 0; j < width; j ++){
+			printf("Reading File, placing pixels\n");
+			
+			red = imaged->data[i*width*3+3*j].r =;
+			fread(&red, 1, 1, fi);
+			
+			green = imaged->data[i*width*3+3*j+1].g;
+			fread(&green, 1, 1, fi);
+			
+			blue = imaged->data[i*width*3+3*j+2].b;
+			fread(&blue, 1, 1, fi);
+		}
 	}
 	
-	fclose(fi);	// Close file
-	printf("What happened here too?\n");
-	if (type == "3"){
-		write_P6(fileNameOut, imaged);   	// if the number selected as output is a 3 go to write P3
+	int types = atoi(type);
+	int o = fgetc(fi);
+	while(getc(fi) != EOF){
+		o = fgetc(fi);
+		
+	if (types == 3){
+		printf(" here ");
+		fclose(fi);	// Close file
+		write_P3(fileNameOut, imaged);						// if the number selected as output is a 3 go to write P3
+		break; 
 	}
-	if (type == "6"){
-		write_P3(fileNameOut, imaged);		// if the number selected as output is a 6 go to write P6
-	}
+	if (types == 6){
+		fclose(fi);	// Close file
+		write_P6(fileNameOut, imaged);						// if the number selected as output is a 6 go to write P6
+		break; 
+	}}
 
 }
 
 
 
-
+//============================ MAIN =================================================================================
 int main(int argc, char *argv[]){
 	if (argc != 4) {
 		fprintf(stderr, "Error: Usage ppmrw # input.ppm output.ppm");
@@ -270,6 +311,10 @@ int main(int argc, char *argv[]){
 			fprintf(stderr, "Error: main usage ppmrw 3(6) input.ppm output.ppm\n");
 			exit(1);
 	}
+		if(strstr(type,  "3" ) == NULL || strstr(type, "6")){						// Check if file is in .ppm format
+			fprintf(stderr, "Error: main usage ppmrw 3(6) input.ppm output.ppm\n");
+			exit(1);
+	}
 	FILE* fi = fopen(fileNameIn, "r");
 	if (!fi) {													// Check if file exists
 		fprintf(stderr, "main: File not able to open, %s may not exist.\n ", fileNameIn);
@@ -278,21 +323,18 @@ int main(int argc, char *argv[]){
 	for (int i = 0; i <2 ; i++){									// get File type p3 or p6
 		d = fgetc(fi);
 		fileHeader[i] = d;
-		printf("%c", d);
-		if (fileHeader[1] == 3){
-			fclose(fi);		
-			printf("WTF IS GOING ON!");				// If input file is p3 go to store data in ascii
-			readStoreASCII(fileNameIn, fileNameOut, type);
-			
+
 		}
-		if (fileHeader[1] == 6){		// If input file is p6 go to store data in RAW
-			fclose(fi);
-			readStoreRAW(fileNameIn, fileNameOut, type);
-		}	
-		
-		}
-		
-		
 	fclose(fi);
+	if (fileHeader[1] == '3'){		
+																// If input file is p3 go to store data in ascii
+		readStoreASCII(fileNameIn, fileNameOut, type);
+
+		}
+	else if (fileHeader[1] == '6'){								// If input file is p6 go to store data in RAW
+		readStoreRAW(fileNameIn, fileNameOut, type);
+		}	
+
+
 
 }

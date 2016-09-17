@@ -11,8 +11,8 @@ and reads ppm file data and out puts a specified ppm file type by the user.
  
 Usage in the command line:
   ppmrw 3/6(intended output type) input.ppm output.ppm
-		
-		Before the string arguments are stored the program will error check to see if
+  
+Before the string arguments are stored the program will error check to see if
  the input and output files are the correct type and the desired file type is correct as well.
  After the tests, main will read the header of the file and get the type then it will pass on
  the file name and output file type to the correct store method be it ascii or raw data.
